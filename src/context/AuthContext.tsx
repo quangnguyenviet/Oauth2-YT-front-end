@@ -3,11 +3,15 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 type AuthContextType = {
   isAuthenticated: boolean;
   loading: boolean;
+  user : User | null;
+  setUser: (user : User | null) => void
 };
 
 const AuthContext = createContext<AuthContextType>({
     isAuthenticated: false,
-    loading: false
+    loading: false,
+    user: null,
+    setUser: () => {}
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -16,9 +20,17 @@ type Props = {
     children: ReactNode;
 }
 
+type User = {
+    name: string,
+    email: string,
+    picture?: string,
+    role: 'USER' | 'ADMIN',
+};
+
 export const AuthProvider = ({ children }: Props) => {
     const [loading, setLoading] = useState(true);
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    // const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [user, setUser] = useState<User | null>(null);
 
     useEffect(() => {
         fetch("http://localhost:8080/api/user", {
@@ -33,18 +45,32 @@ export const AuthProvider = ({ children }: Props) => {
         })
         .then(data => {
             console.log(data);
-            setIsAuthenticated(true);
+            // setIsAuthenticated(true);
+            if(!data){
+                setUser(null);
+            }
+            else{
+                setUser({
+                    name: data.name,
+                    email: data.email,
+                    picture: data.picture,
+                    role: data.role
+                });
+            }
         })
         .catch(error => {
             console.error("Error fetching user data:", error)
+            setUser(null);
         })
         .finally(() => {
             setLoading(false);
         });
     }, []);
 
+    const isAuthenticated = !!user;
+
     return (
-        <AuthContext.Provider value={{ isAuthenticated, loading }}>
+        <AuthContext.Provider value={{ isAuthenticated, loading, user, setUser }}>
             {children}
         </AuthContext.Provider>
     );
